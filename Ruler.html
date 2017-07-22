@@ -1,0 +1,304 @@
+<html>
+    <head>
+        <title>Scroll Game</title>
+        <style>
+        canvas{
+        background-image: url(02.jpg);
+        }
+        </style>
+        <script language="javascript" type="text/javascript" src="js/ruler.js"></script>
+        <script language="javascript" type="text/javascript" src="js/Levels.js"></script>
+        <script language="javascript" type="text/javascript" src="js/Sounds.js"></script>
+        <script type="text/javascript">
+            var canvas, context;
+            var rect = { x: 600, y: 570, width: 180, height: 7, left: 80, right: 100 };
+            var rects = new Array(), AllImages = new Array(), ID = new Array();
+            var LocX = rect.x + (rect.width / 2), LocY = rect.y - rect.height - .1;
+            var speedx = 5, speedy = -5;
+            var stop = false, Start_Speed = false, IsAlive = true, pause = false, touch = false;
+            var flag = 0, num = 11, Angle = 0, level = 1, r = 7, score = 0, Lifes = 5;
+            var images = ["Stone 1.png", "Stone 2.png", "Stone 3.png", "Stone 4.png"];
+            var Ruler, Level, sound, Down_Up = 0.5;
+            rects[0] = { x: 125, y: 150 };
+
+            ////////////////////////////////////////////////////  Initialization  ////////////////////////////////////////////////////
+
+            function Init() {
+                canvas = document.getElementById("canvas");
+                context = canvas.getContext("2d");
+                canvas.onkeydown = updatekeyboard;
+                canvas.onmousemove = UpdateMouse;
+                canvas.addEventListener("mousedown", function () { stop = true; }, true);
+                canvas.focus();
+                window.requestAnimationFrame(Draw);
+            }
+
+            ////////////////////////////////////////////////////  Draw  ////////////////////////////////////////////////////
+
+            function Draw() {
+                Ruler = new ruler(rect.x, rect.y, rect.width, rect.height, rect.left, rect.right, LocX, r, speedx, speedy);
+                sound = new Sound();
+
+                Ruler.Draw_Ruler(context, canvas);
+                context.font = "20px Old English Text MT";
+                context.fillStyle = "red";
+                context.fillText("Level : " + level, 10, 20);
+                context.fillStyle = "blue";
+                context.fillText("Lifes  : " + Lifes, 10, 40);
+                context.fillStyle = "green";
+                context.fillText("Score : " + score, 10, 60);
+
+
+                DrawStones();
+
+
+                if (((LocX - r <= 0) && (LocY - r <= 0)) || ((LocY - r <= 0) && (LocX + r >= canvas.width))) {
+                    speedx = -speedx;
+                    speedy = -speedy;
+                    Start_Speed = true;
+                }
+                else if ((LocX + r >= canvas.width) || (LocX - r <= 0)) {
+                    speedx = -speedx;
+                    Start_Speed = true;
+                }
+                else if (LocY - r <= 0) {
+                    speedy = -speedy;
+                    Start_Speed = true;
+                }
+                else if (LocY + r >= canvas.height) {
+                    Lifes--;
+                    if (Lifes == -1) {
+                        context.font = "30px arial";
+                        context.fillText("Game Over !", (canvas.width / 2) - 60, canvas.height / 2);
+                        IsAlive = false;
+                    }
+                    sound.sound("04");
+                    stop = false;
+                    Start_Speed = false;
+                    speedx = 5, speedy = -5;
+                    rect = { x: 600, y: 570, width: 180, height: 7, left: 75, right: 105 };
+                    LocX = rect.x + (rect.width / 2), LocY = rect.y - rect.height - .1;
+                }
+                else if ((LocX + r >= rect.x) && (LocX - r <= rect.x + rect.width) && (LocY + r >= rect.y) && (LocY - r <= rect.y + (rect.height / 2))) {
+                    sound.sound("03");
+                    Ruler.speed();
+                    speedx = Ruler.speedx;
+                    speedy = Ruler.speedy;
+                    speedy = -speedy;
+                    touch = true;
+                    Start_Speed = true;
+                }
+                if (touch) {
+                    rect.y += Down_Up;
+                    if (rect.y >= 575) {
+                        Down_Up = -Down_Up;
+                    }
+                    else if (rect.y <= 570) {
+                        rect.y = 570;
+                        Down_Up = 0.5;
+                        touch = false;
+                    }
+                }
+                context.fillStyle = "red";
+                context.beginPath();
+                if (stop) {
+                    if ((Angle == 0) && (Start_Speed == false)) {
+                        speedx = 0;
+                        context.arc(LocX += speedx, LocY += speedy, 7, 0, 2 * Math.PI);
+                        speedx = 5;
+                    }
+                    else if ((Angle == 30) && (Start_Speed == false)) {
+                        speedx = 5;
+                        context.arc(LocX += speedx, LocY += speedy, 7, 0, 2 * Math.PI);
+                    }
+                    else if ((Angle == -30) && (Start_Speed == false)) {
+                        speedx = -5;
+                        context.arc(LocX += speedx, LocY += speedy, 7, 0, 2 * Math.PI);
+                    }
+                    else {
+                        context.arc(LocX += speedx, LocY += speedy, 7, 0, 2 * Math.PI);
+                    }
+                }
+                else if ((stop == false) && (IsAlive)) {
+                    canvas.onkeydown = updatekeyboard;
+                    context.beginPath();
+                    context.moveTo(LocX, LocY);
+                    if (Angle == 0) {
+                        context.lineTo(LocX, LocY - 55);
+                    }
+                    else if (Angle == 30) {
+                        context.lineTo(LocX + Angle, LocY - 70 + Angle);
+                    }
+                    else if (Angle == -30) {
+                        context.lineTo(LocX + Angle, LocY - 70 - Angle);
+                    }
+                    else if (Angle > 30) {
+                        Angle = 30;
+                    }
+                    else if (Angle < -30) {
+                        Angle = -30;
+                    }
+                    context.stroke();
+                    context.beginPath();
+                    context.arc(LocX, LocY, 7, 0, 2 * Math.PI);
+                }
+                context.fill();
+
+                if (IsAlive) {
+                    window.requestAnimationFrame(Draw);
+                }
+                else if(pause)
+                {
+                    context.font = "60px Old English Text MT";
+                    context.fillStyle = "red";
+                    context.fillText("Pause", (canvas.width/2)-50, canvas.height/2);
+                }
+            }
+            ////////////////////////////////////////////////////  Draw Stones  ////////////////////////////////////////////////////
+            function DrawStones() {
+                if (flag < num) {
+                    Level = new Levels(ID, images, AllImages, rects);
+                    if (level == 1) {
+                        Level.level1(context);
+                    }
+                    else if (level == 2) {
+                        Level.level2(context);
+                    }
+                    else if (level == 3) {
+                        Level.level3(context);
+                    }
+                    else if (level == 4) {
+                        Level.level4(context);
+                    }
+                }
+                else if (level < 5) {
+                    sound.sound("02");
+                    context.font = "30px arial";
+                    if (level == 1) {
+                        New_Level(11, { x: 600, y: 50 });
+                    }
+                    else if (level == 2) {
+                        New_Level(36, { x: 200, y: 200 });
+                    }
+                    else if (level == 3) {
+                        New_Level(36, { x: 400, y: 100 });
+                    }
+                    level++;
+                    Init();
+                }
+                else if (level > 4) {
+                    context.font = "30px arial";
+                    context.fillText("Congratualtion You Win !\n\tYour Score = " + score, canvas.width / 3, canvas.height / 2);
+                    IsAlive = false;
+                }
+
+                for (h = 0; h < num; h++) {
+                    if ((!ID[h]) && (flag < num) && (LocX + r >= rects[h].x) && (LocX - r <= rects[h].x + AllImages[h].width) && (LocY + r >= rects[h].y) && (LocY - r <= rects[h].y + AllImages[h].height)) {
+                        sound.sound("01");
+                        if ((LocX + r - speedx - 1 < rects[h].x) || (LocX - r - speedx + 1 > rects[h].x + AllImages[h].width)) {
+                            speedx = -speedx;
+                        }
+                        else {
+                            speedy = -speedy;
+                        }
+                        Start_Speed = true;
+                        ID[h] = true;
+                        flag++;
+                        score += 10;
+                    }
+                }
+            }
+
+            ////////////////////////////////////////////////////  New Level Attributes  ////////////////////////////////////////////////////
+
+            function New_Level(n, rec) {
+                rect = { x: 600, y: 570, width: 180, height: 7, left: 75, right: 105 };
+                LocX = rect.x + (rect.width / 2), LocY = rect.y - rect.height - .1;
+                AllImages = new Array(), ID = new Array(), rects = new Array();
+                rects[0] = rec;
+                speedy = -5;
+                stop = false, Start_Speed = false;
+                flag = 0, num = n, Angle = 0;
+            }
+
+            ////////////////////////////////////////////////////  Mouse Move  ////////////////////////////////////////////////////
+
+            function UpdateMouse(event) {
+                if ((!(event.pageX + (rect.width / 2) > canvas.width) && (event.pageX > rect.width / 2)) && (stop)) {
+                    rect.x = event.pageX - rect.width / 2;
+                }
+                else if (stop == false) {
+                    if (event.pageX - 8 > rect.x + rect.width) {
+                        Angle = 30;
+                    }
+                    if ((event.pageX - 8 > rect.x) && (event.pageX - 8 < rect.x + rect.width)) {
+                        Angle = 0;
+                    }
+                    if (event.pageX - 8 < rect.x) {
+                        Angle = -30;
+                    }
+                }
+
+            }
+            ////////////////////////////////////////////////////  Keyboard Move  ////////////////////////////////////////////////////
+
+            function updatekeyboard(eventData) {
+                if ((rect.x >= 0) && (rect.x + rect.width <= canvas.width)) {
+                    switch (eventData.keyCode) {
+                        case 37:
+                            {
+                                if (stop) {
+                                    if (rect.x - 15 <= 0)
+                                    { rect.x = 1; }
+                                    else
+                                    { rect.x -= 15; }
+                                }
+                                else {
+                                    Angle -= 30;
+                                }
+                            }
+                            break;
+
+                        case 39:
+                            {
+                                if (stop) {
+                                    if (rect.x + rect.width + 15 >= canvas.width)
+                                    { rect.x = canvas.width - rect.width - 1; }
+                                    else
+                                    { rect.x += 15; }
+                                }
+                                else {
+                                    Angle += 30;
+                                }
+                            }
+                            break;
+
+                        case 32:
+                            {
+                                stop = true;
+                            }
+                            break;
+
+                        case 27:
+                            pause=!pause;
+                            if (pause==true) 
+                            {
+                                IsAlive=false;
+                            }
+                            else
+                            {
+                                IsAlive=true;
+                                Init();
+                            }
+                            break;
+
+                        default: break;
+                    }
+                }
+            }            
+        </script>
+    </head>
+    <body onload="Init()">
+        <canvas id="canvas" width="1345" height="610" style="background-color:#f1f1f1" tabindex="1">This Browser Doesn't Support Canvas</canvas>
+    </body>
+</html>
